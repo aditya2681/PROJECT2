@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto8
+      docker: 18
+  pre_build:
+    commands:
+      - echo "Pre_build"
+      - echo "Logging in to Amazon ECR"
+      - $(aws ecr get-login  --no-include-email --region us-east-2)
+  build:
+    commands:
+      - echo "Build"
+      - echo "Entered build phase"
+      - echo "Building Java"
+      - cd  Auth
+      - mvn clean package
+      - docker build -t service-registry:latest .
+      - docker tag service-registry:latest 788435807523.dkr.ecr.us-east-1.amazonaws.com/service-registry:Auth
+
+  post_build:
+    commands:
+      - echo "Post_build"
+      - docker push 788435807523.dkr.ecr.us-east-1.amazonaws.com/service-registry:Auth
+      - printf '[{"name":"Auth-container","imageUri":"%s"}]' 788435807523.dkr.ecr.us-east-1.amazonaws.com/service-registry:Auth > taskdefinition.json
+      - cat taskdefinition.json
+
+artifacts:
+  files:
+    - Auth/taskdefinition.json
